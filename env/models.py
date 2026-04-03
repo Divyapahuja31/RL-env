@@ -25,3 +25,10 @@ class Action(BaseModel):
 
 class Reward(BaseModel):
     value: float = Field(..., description="Numerical reward value for the current step performance")
+
+# Helpful for OpenEnv step results
+class StepResult(BaseModel):
+    observation: Observation
+    reward: Reward
+    done: bool
+    info: dict = {}
