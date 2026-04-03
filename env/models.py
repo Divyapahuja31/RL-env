@@ -9,3 +9,8 @@ class Zone(BaseModel):
 class Resources(BaseModel):
     ambulances: int = Field(..., ge=0, description="Available ambulances")
     food_kits: int = Field(..., ge=0, description="Available food kits")
+
+class Observation(BaseModel):
+    zones: List[Zone] = Field(..., description="List of all zones and their current state")
+    resources: Resources = Field(..., description="Remaining resources available for allocation")
+    time_remaining: int = Field(..., ge=0, description="Time steps remaining in the simulation")
