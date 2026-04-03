@@ -1,5 +1,5 @@
-from typing import List, Literal
-from pydantic import BaseModel, Field
+from typing import List, Literal, Annotated
+from pydantic import BaseModel, Field, RootModel
 
 class Zone(BaseModel):
     name: str = Field(..., description="Unique name of the disaster zone")
@@ -22,3 +22,6 @@ class Allocation(BaseModel):
 
 class Action(BaseModel):
     allocations: List[Allocation] = Field(..., description="List of resource allocations to perform this step")
+
+class Reward(BaseModel):
+    value: float = Field(..., description="Numerical reward value for the current step performance")
