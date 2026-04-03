@@ -14,3 +14,11 @@ class Observation(BaseModel):
     zones: List[Zone] = Field(..., description="List of all zones and their current state")
     resources: Resources = Field(..., description="Remaining resources available for allocation")
     time_remaining: int = Field(..., ge=0, description="Time steps remaining in the simulation")
+
+class Allocation(BaseModel):
+    resource: Literal["ambulance", "food_kits"] = Field(..., description="Type of resource to allocate")
+    zone: str = Field(..., description="Target zone name for the allocation")
+    amount: int = Field(..., gt=0, description="Amount of resource to allocate")
+
+class Action(BaseModel):
+    allocations: List[Allocation] = Field(..., description="List of resource allocations to perform this step")
