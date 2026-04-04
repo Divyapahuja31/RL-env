@@ -33,3 +33,28 @@ class DisasterEnv:
         if self._observation is None:
             raise ValueError("Environment not reset.")
         return self._observation.model_dump()
+
+    def step(self, action: Action) -> Dict[str, Any]:
+        """Processes allocations and returns step results."""
+        if self._observation is None:
+            raise ValueError("Environment not reset.")
+
+        reward_value = 0.0
+        info = {"logs": []}
+
+        for alloc in action.allocations:
+            zone = next((z for z in self._observation.zones if z.name == alloc.zone), None)
+            if not zone:
+                reward_value -= 1.0
+                info["logs"].append(f"Penalty: Invalid zone {alloc.zone}")
+                continue
+
+        self._observation.time_remaining -= 1
+        done = self._observation.time_remaining <= 0
+
+        return {
+            "observation": self._observation.model_dump(),
+            "reward": reward_value,
+            "done": done,
+            "info": info
+        }
