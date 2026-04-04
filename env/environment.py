@@ -41,6 +41,7 @@ class DisasterEnv:
 
         reward_value = 0.0
         info = {"logs": []}
+        used_ambulances = 0
 
         for alloc in action.allocations:
             zone = next((z for z in self._observation.zones if z.name == alloc.zone), None)
@@ -49,6 +50,19 @@ class DisasterEnv:
                 info["logs"].append(f"Penalty: Invalid zone {alloc.zone}")
                 continue
 
+            if alloc.resource == "ambulance":
+                amount = min(alloc.amount, self._observation.resources.ambulances - used_ambulances)
+                if amount < alloc.amount:
+                    reward_value -= (alloc.amount - amount) * 0.5
+                    info["logs"].append(f"Waste: Over-allocated ambulances to {zone.name}")
+                if amount > 0:
+                    used_ambulances += amount
+                    impact = amount * 0.2 * zone.urgency
+                    zone.urgency = max(0.0, zone.urgency - impact)
+                    reward_value += (impact * 100.0)
+                    info["logs"].append(f"Success: Allocated {amount} ambulances to {zone.name}")
+
+        self._observation.resources.ambulances -= used_ambulances
         self._observation.time_remaining -= 1
         done = self._observation.time_remaining <= 0
 
