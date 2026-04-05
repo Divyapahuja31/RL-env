@@ -1,3 +1,15 @@
 name: Disaster Response Environment
-version: 0.1.0
-description: AI disaster response environment
+version: 1.0.0
+description: A deterministic resource allocation environment for disaster relief coordination.
+
+observation_type: env.models:Observation
+action_type: env.models:Action
+reward_type: env.models:Reward
+
+entrypoint: env.environment:DisasterEnv
+grader: graders.grader:Grader
+
+tasks:
+  easy: tasks.easy:EasyTask
+  medium: tasks.medium:MediumTask
+  hard: tasks.hard:HardTask
