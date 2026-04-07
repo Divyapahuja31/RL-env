@@ -1,15 +1,25 @@
 name: Disaster Response Environment
-version: 1.0.0
-description: A deterministic resource allocation environment for disaster relief coordination.
+version: 1.1.0
+description: A deterministic resource allocation environment for disaster relief coordination, prioritizing high-urgency zones.
 
+# Data Types (Pydantic models)
 observation_type: env.models:Observation
 action_type: env.models:Action
 reward_type: env.models:Reward
 
+# Implementation Entry Points
 entrypoint: env.environment:DisasterEnv
 grader: graders.grader:Grader
 
+# Task Definitions
 tasks:
   easy: tasks.easy:EasyTask
   medium: tasks.medium:MediumTask
   hard: tasks.hard:HardTask
+
+# Extra Metadata
+metadata:
+  scenario: Disaster Relief
+  difficulty_range: [1, 3]
+  max_steps_default: 5
+  resources_supported: ["ambulance", "food_kits"]
