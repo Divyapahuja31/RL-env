@@ -7,9 +7,10 @@ print("Initial:", obs)
 
 action = {
     "allocations": [
-        {"resource": "ambulance", "zone": "Metropolis", "amount": 1}
+        {"resource": "ambulance", "zone": "A", "amount": 1}
     ]
 }
 
 result = env.step(action)
+
 print("Step result:", result)
