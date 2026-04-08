@@ -93,9 +93,14 @@ def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> No
 def get_model_action(client: OpenAI, observation: Dict[str, Any]) -> Dict[str, Any]:
     """
     Sends the current observation to the LLM and returns a clean action dict.
-    Falls back to a simple heuristic if the LLM call fails.
+    Dynamically identifies valid zones and ensures the most urgent zone is used as a fallback.
     """
-    zone_names = [z["name"] for z in observation["zones"]]
+    zones = observation["zones"]
+    zone_names = [z["name"] for z in zones]
+    
+    # Identify the highest urgency zone for strategic fallback
+    most_urgent_zone = max(zones, key=lambda z: z["urgency"])["name"]
+    
     amb = observation["resources"]["ambulances"]
     food = observation["resources"]["food_kits"]
 
@@ -128,11 +133,14 @@ Decide your resource allocations now. Respond with JSON only."""
         clean_allocations = []
         for alloc in action_data.get("allocations", []):
             zone = alloc.get("zone", "")
+            # DYNAMIC FIX: If zone is invalid or hardcoded wrong, pick the most urgent one
             if zone not in zone_names:
-                zone = zone_names[0]  # fallback to first zone
+                zone = most_urgent_zone 
+                
             resource = alloc.get("resource", "ambulance")
             if resource not in ("ambulance", "food_kits"):
                 resource = "ambulance"
+                
             amount = max(1, int(alloc.get("amount", 1)))
             clean_allocations.append({
                 "resource": resource,
