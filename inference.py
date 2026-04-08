@@ -92,49 +92,49 @@ def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> No
 # ── LLM action generation ─────────────────────────────────────────────────────
 def get_model_action(client: OpenAI, observation: Dict[str, Any], task_name: str) -> Dict[str, Any]:
     """
-    Strategic action selection logic that adapts to task difficulty and resource availability.
+    Advanced resource-aware logic that enforces stepwise planning and avoids resource exhaustion.
     """
     zones = observation["zones"]
-    # Identify the highest urgency zone and sort for distribution
-    highest_zone = max(zones, key=lambda z: z["urgency"])
+    # Sort zones by urgency descending for proportional distribution
     zones_sorted = sorted(zones, key=lambda z: z["urgency"], reverse=True)
+    highest_zone = zones_sorted[0]
     
     amb_count = observation["resources"]["ambulances"]
     food_count = observation["resources"]["food_kits"]
     
     allocations = []
     
-    # --- EASY TASK STRATEGY: Ambulance Focus ---
+    # --- 1. EASY TASK: Steady Medical Response ---
     if task_name == "easy":
-        if amb_count > 0:
+        if amb_count >= 1:
             allocations.append({"resource": "ambulance", "zone": highest_zone["name"], "amount": 1})
             
-    # --- MEDIUM TASK STRATEGY: Distributed Food ---
+    # --- 2. MEDIUM TASK: Proportional Food Distribution ---
     elif task_name == "medium":
-        # Distribute food kits to top 3 most urgent zones
+        # Distribute small amounts to top 3 zones proportionately
         for i, zone in enumerate(zones_sorted[:3]):
-            if food_count >= 20:
-                allocations.append({"resource": "food_kits", "zone": zone["name"], "amount": 20})
-                food_count -= 20
+            amount = 10 if i == 0 else 5 # More to the highest urgency
+            if food_count >= amount:
+                allocations.append({"resource": "food_kits", "zone": zone["name"], "amount": amount})
+                food_count -= amount
 
-    # --- HARD TASK STRATEGY: Hybrid Triage ---
+    # --- 3. HARD TASK: Gradual Multi-Step Triage ---
     elif task_name == "hard":
-        for zone in zones_sorted:
-            # If urgency > 0.7 and we have ambulances, prioritize them
-            if zone["urgency"] > 0.7 and amb_count > 0:
+        # Prioritize top 2 zones for ambulances, then distribute small food kits
+        for i, zone in enumerate(zones_sorted):
+            if i < 2 and amb_count >= 1:
                 allocations.append({"resource": "ambulance", "zone": zone["name"], "amount": 1})
                 amb_count -= 1
-            # Otherwise distribute food
-            elif food_count >= 10:
-                allocations.append({"resource": "food_kits", "zone": zone["name"], "amount": 10})
-                food_count -= 10
-                
-    # --- FALLBACK: If no logic triggered but resources exist ---
+            elif i < 5 and food_count >= 5: # Limit food to 5 per step per zone
+                allocations.append({"resource": "food_kits", "zone": zone["name"], "amount": 5})
+                food_count -= 5
+
+    # --- 4. NEVER EMPTY FALLBACK: Minimum 1 Valid Action ---
     if not allocations and highest_zone["urgency"] > 0:
         if amb_count > 0:
             allocations.append({"resource": "ambulance", "zone": highest_zone["name"], "amount": 1})
         elif food_count > 0:
-            allocations.append({"resource": "food_kits", "zone": highest_zone["name"], "amount": 10})
+            allocations.append({"resource": "food_kits", "zone": highest_zone["name"], "amount": 5})
 
     return {"allocations": allocations}
 
