@@ -31,7 +31,7 @@ from tasks.hard import HardTask
 # ── Configuration ──────────────────────────────────────────────────────────────
 API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
-API_KEY = os.getenv("HF_TOKEN") or os.getenv("OPENAI_API_KEY") or "no-key-set"
+API_KEY = os.getenv("OPENAI_API_KEY") or os.getenv("HF_TOKEN") or "no-key-set"
 
 BENCHMARK = "disaster-openenv"
 MAX_TOTAL_REWARD = 150.0  # Used for score normalization
