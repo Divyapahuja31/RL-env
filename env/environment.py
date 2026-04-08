@@ -110,13 +110,27 @@ class DisasterEnv:
         self._observation.resources.ambulances -= used_ambulances
         self._observation.resources.food_kits -= used_food
 
+        # --- Dynamic Urgency Degradation ---
+        # In a real disaster, things get worse if not addressed.
+        for zone in self._observation.zones:
+            if zone.urgency > 0 and zone.urgency < 1.0:
+                # Small base increase + dynamic increase based on existing urgency
+                degradation = 0.01 + (zone.urgency * 0.02)
+                
+                # If ambulances were sent to this zone this turn, mitigate degradation
+                zone_allocs = [a for a in action.allocations if a.zone == zone.name]
+                if any(a.resource == "ambulance" for a in zone_allocs):
+                    degradation *= 0.1 # Medical presence significantly slows down worsening
+                
+                zone.urgency = min(1.0, zone.urgency + degradation)
+
         # Decrease time
         self._observation.time_remaining -= 1
         done = self._observation.time_remaining <= 0
 
         return {
             "observation": self._observation.model_dump(),
-            "reward": reward_value,
+            "reward": round(reward_value, 2),
             "done": done,
             "info": info
         }

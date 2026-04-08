@@ -8,17 +8,19 @@ class HardTask:
     """
     def get_config(self) -> Dict[str, Any]:
         return {
-            "max_steps": 5,
+            "max_steps": 4, # Tighter deadline
             "resources": {
                 "ambulances": 3,
-                "food_kits": 100
+                "food_kits": 50 # Half the previous amount
             },
             "zones": [
-                {"name": "Epicenter", "people": 1000, "urgency": 0.9},
-                {"name": "West Side", "people": 500, "urgency": 0.7},
-                {"name": "East Side", "people": 500, "urgency": 0.6},
-                {"name": "Outskirts", "people": 200, "urgency": 0.3},
-                {"name": "Remote", "people": 100, "urgency": 0.2}
+                {"name": "Epicenter", "people": 1000, "urgency": 0.95},
+                {"name": "Hospital District", "people": 800, "urgency": 0.85},
+                {"name": "Industrial Zone", "people": 600, "urgency": 0.75},
+                {"name": "West Side", "people": 500, "urgency": 0.65},
+                {"name": "East Side", "people": 500, "urgency": 0.55},
+                {"name": "Outskirts", "people": 200, "urgency": 0.45},
+                {"name": "Remote", "people": 100, "urgency": 0.35}
             ]
         }
 

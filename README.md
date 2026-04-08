@@ -114,9 +114,12 @@ The script follows a strict lifecycle logging format:
 
 | Task | Baseline Score | Baseline Reward |
 |:---|:---:|:---:|
-| Easy | 0.607 | 94.90 |
+| Easy | 0.606 | 94.90 |
 | Medium | 0.280 | 50.00 |
-| Hard | 0.467 | 78.00 |
+| Hard | 0.234 | 71.17 |
+
+| Average Score | 0.373 |
+|---|---|
 
 ---
 *Built with ❤️ for the OpenEnv Community.*
