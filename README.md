@@ -71,10 +71,12 @@ The reward system is continuous and deterministic, designed to guide agents towa
 
 ### Local Installation
 1. Ensure Python 3.10+ is installed.
-2. Install dependencies:
+2. Install dependencies (recommended):
    ```bash
-   python3 -m pip install -r requirements.txt
+   pip install uv
+   uv sync
    ```
+   *Alternatively:* `pip install -r requirements.txt`
 
 ### Docker Setup
 Build the minimal image for containerized runs:
@@ -115,10 +117,10 @@ The script follows a strict lifecycle logging format:
 | Task | Baseline Score | Baseline Reward |
 |:---|:---:|:---:|
 | Easy | 0.210 | 46.49 |
-| Medium | 0.260 | 39.03 |
-| Hard | 0.205 | 60.81 |
+| Medium | 0.162 | 24.25 |
+| Hard | 0.338 | 65.65 |
 
-| Average Score | 0.225 |
+| Average Score | 0.236 |
 |---|---|
 
 ---
