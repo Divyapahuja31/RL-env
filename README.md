@@ -1,3 +1,16 @@
+---
+title: Disaster Response OpenEnv
+emoji: 🚨
+colorFrom: red
+colorTo: yellow
+sdk: docker
+app_port: 7860
+tags:
+  - openenv
+pinned: false
+license: mit
+---
+
 # 🚨 Disaster Response Environment (OpenEnv)
 
 [![OpenEnv Support](https://img.shields.io/badge/OpenEnv-Compliant-blue.svg)](https://github.com/openenv)
