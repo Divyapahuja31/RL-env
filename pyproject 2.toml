@@ -1,0 +1,25 @@
+[project]
+name = "disaster-openenv"
+version = "0.1.0"
+description = "AI Disaster Response OpenEnv environment"
+authors = [
+  { name = "Divya Pahuja" }
+]
+dependencies = [
+  "openenv-core",
+  "pydantic",
+  "fastapi",
+  "uvicorn",
+  "openai",
+  "python-dotenv"
+]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["env", "tasks", "graders", "server"]
+
+[project.scripts]
+server = "server.app:main"

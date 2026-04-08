@@ -1,16 +1,3 @@
----
-title: Disaster Response OpenEnv
-emoji: 🚨
-colorFrom: red
-colorTo: yellow
-sdk: docker
-app_port: 7860
-tags:
-  - openenv
-pinned: false
-license: mit
----
-
 # 🚨 Disaster Response Environment (OpenEnv)
 
 [![OpenEnv Support](https://img.shields.io/badge/OpenEnv-Compliant-blue.svg)](https://github.com/openenv)
@@ -90,8 +77,8 @@ The project includes an LLM-driven inference script that uses OpenAI-compatible 
 
 ```bash
 # Set your environment variables
-export API_BASE_URL="https://router.huggingface.co/v1"
-export MODEL_NAME="Qwen/Qwen2.5-72B-Instruct"
+export API_BASE_URL="https://api.openai.com/v1"
+export MODEL_NAME="gpt-4-turbo-preview"
 export HF_TOKEN="your_api_key_here"
 
 # Execute simulation
@@ -111,12 +98,6 @@ The script follows a strict lifecycle logging format:
 - **Greedy Agents**: Typically perform well on the Easy task by saturating the highest urgency zone first, but often fail the Hard task due to premature resource depletion.
 - **Strategic Agents**: Should demonstrate "triage" logic—allocating just enough food to stabilize moderate zones while committing medical units to the most critical sectors.
 - **Score Range**: A "Passing" grade represents a normalized score of **>0.5**, indicating high efficiency and no significant resource waste.
-
-| Task | Baseline Score | Baseline Reward |
-|:---|:---:|:---:|
-| Easy | 0.607 | 94.90 |
-| Medium | 0.280 | 50.00 |
-| Hard | 0.467 | 78.00 |
 
 ---
 *Built with ❤️ for the OpenEnv Community.*
