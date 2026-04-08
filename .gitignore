@@ -27,9 +27,3 @@ Thumbs.db
 # Environment variables
 .env
 
-# Docker
-*.log
-
-# Misc
-uv.lock
-*.lock
