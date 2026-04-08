@@ -114,11 +114,11 @@ The script follows a strict lifecycle logging format:
 
 | Task | Baseline Score | Baseline Reward |
 |:---|:---:|:---:|
-| Easy | 0.607 | 95.00 |
-| Medium | 0.280 | 50.00 |
-| Hard | 0.316 | 68.33 |
+| Easy | 0.210 | 46.49 |
+| Medium | 0.260 | 39.03 |
+| Hard | 0.205 | 60.81 |
 
-| Average Score | 0.401 |
+| Average Score | 0.225 |
 |---|---|
 
 ---

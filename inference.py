@@ -90,89 +90,51 @@ def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> No
 
 
 # ── LLM action generation ─────────────────────────────────────────────────────
-def get_model_action(client: OpenAI, observation: Dict[str, Any]) -> Dict[str, Any]:
+def get_model_action(client: OpenAI, observation: Dict[str, Any], task_name: str) -> Dict[str, Any]:
     """
-    Sends the current observation to the LLM and returns a clean action dict.
-    Dynamically identifies valid zones and ensures the most urgent zone is used as a fallback.
+    Strategic action selection logic that adapts to task difficulty and resource availability.
     """
     zones = observation["zones"]
-    zone_names = [z["name"] for z in zones]
+    # Identify the highest urgency zone and sort for distribution
+    highest_zone = max(zones, key=lambda z: z["urgency"])
+    zones_sorted = sorted(zones, key=lambda z: z["urgency"], reverse=True)
     
-    # Identify the highest urgency zone for strategic fallback
-    most_urgent_zone = max(zones, key=lambda z: z["urgency"])["name"]
+    amb_count = observation["resources"]["ambulances"]
+    food_count = observation["resources"]["food_kits"]
     
-    amb = observation["resources"]["ambulances"]
-    food = observation["resources"]["food_kits"]
-
-    user_prompt = f"""Current disaster state:
-{json.dumps(observation, indent=2)}
-
-Available resources: {amb} ambulances, {food} food_kits
-Valid zone names: {zone_names}
-Time remaining: {observation['time_remaining']} steps
-
-Decide your resource allocations now. Respond with JSON only."""
-
-    try:
-        response = client.chat.completions.create(
-            model=MODEL_NAME,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=TEMPERATURE,
-            max_tokens=MAX_TOKENS,
-            stream=False,
-        )
-        raw = (response.choices[0].message.content or "").strip()
-
-        # Parse the JSON response
-        action_data = json.loads(raw)
-
-        # Validate and sanitize zone names
-        clean_allocations = []
-        for alloc in action_data.get("allocations", []):
-            zone = alloc.get("zone", "")
-            # DYNAMIC FIX: If zone is invalid or hardcoded wrong, pick the most urgent one
-            if zone not in zone_names:
-                zone = most_urgent_zone 
-                
-            resource = alloc.get("resource", "ambulance")
-            if resource not in ("ambulance", "food_kits"):
-                resource = "ambulance"
-                
-            amount = max(1, int(alloc.get("amount", 1)))
-            clean_allocations.append({
-                "resource": resource,
-                "zone": zone,
-                "amount": amount,
-            })
-
-        return {"allocations": clean_allocations}
-
-    except Exception:
-        # Fallback: allocate 1 ambulance to highest urgency zone
-        return _fallback_action(observation)
-
-
-def _fallback_action(observation: Dict[str, Any]) -> Dict[str, Any]:
-    """Simple heuristic fallback when LLM fails."""
-    zones = observation["zones"]
-    most_urgent = max(zones, key=lambda z: z["urgency"])
     allocations = []
+    
+    # --- EASY TASK STRATEGY: Ambulance Focus ---
+    if task_name == "easy":
+        if amb_count > 0:
+            allocations.append({"resource": "ambulance", "zone": highest_zone["name"], "amount": 1})
+            
+    # --- MEDIUM TASK STRATEGY: Distributed Food ---
+    elif task_name == "medium":
+        # Distribute food kits to top 3 most urgent zones
+        for i, zone in enumerate(zones_sorted[:3]):
+            if food_count >= 20:
+                allocations.append({"resource": "food_kits", "zone": zone["name"], "amount": 20})
+                food_count -= 20
 
-    if observation["resources"]["ambulances"] > 0 and most_urgent["urgency"] > 0:
-        allocations.append({
-            "resource": "ambulance",
-            "zone": most_urgent["name"],
-            "amount": 1,
-        })
-    elif observation["resources"]["food_kits"] > 0 and most_urgent["urgency"] > 0:
-        allocations.append({
-            "resource": "food_kits",
-            "zone": most_urgent["name"],
-            "amount": 10,
-        })
+    # --- HARD TASK STRATEGY: Hybrid Triage ---
+    elif task_name == "hard":
+        for zone in zones_sorted:
+            # If urgency > 0.7 and we have ambulances, prioritize them
+            if zone["urgency"] > 0.7 and amb_count > 0:
+                allocations.append({"resource": "ambulance", "zone": zone["name"], "amount": 1})
+                amb_count -= 1
+            # Otherwise distribute food
+            elif food_count >= 10:
+                allocations.append({"resource": "food_kits", "zone": zone["name"], "amount": 10})
+                food_count -= 10
+                
+    # --- FALLBACK: If no logic triggered but resources exist ---
+    if not allocations and highest_zone["urgency"] > 0:
+        if amb_count > 0:
+            allocations.append({"resource": "ambulance", "zone": highest_zone["name"], "amount": 1})
+        elif food_count > 0:
+            allocations.append({"resource": "food_kits", "zone": highest_zone["name"], "amount": 10})
 
     return {"allocations": allocations}
 
@@ -201,7 +163,7 @@ def run_task(client: OpenAI, task_name: str, task_instance, grader: Grader) -> f
             if done:
                 break
 
-            action = get_model_action(client, current_obs)
+            action = get_model_action(client, current_obs, task_name)
             action_str = json.dumps(action)
             error = None
 
