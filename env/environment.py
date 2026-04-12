@@ -42,7 +42,15 @@ class DisasterEnv:
         Supports both Action Pydantic model and plain dict input.
         """
         if self._observation is None:
-            raise ValueError("Environment not reset.")
+            raise ValueError("Environment not reset. Call reset() before step().")
+
+        if self._observation.time_remaining <= 0:
+            return {
+                "observation": self._observation.model_dump(),
+                "reward": 0.0,
+                "done": True,
+                "info": {"error": "Episode already finished."}
+            }
 
         # Ensure action is converted to Action Pydantic model
         if isinstance(action, dict):
@@ -60,67 +68,75 @@ class DisasterEnv:
         reward_value = 0.0
         info = {"logs": []}
 
-        # Penalize no action
+        # Penalize empty actions (inaction cost)
         if not action.allocations:
             reward_value -= 2.0
-            info["logs"].append("Penalty: No action taken.")
+            info["logs"].append("Penalty: No allocations provided this step.")
 
-        # Track resource usage to penalize waste
+        # Track resource usage to penalize waste/over-allocation
         used_ambulances = 0
         used_food = 0
 
         for alloc in action.allocations:
             zone = next((z for z in self._observation.zones if z.name == alloc.zone), None)
             
-            # Penalize allocating to non-existent zone or over-allocating
+            # Penalize allocating to non-existent zone
             if not zone:
                 reward_value -= 1.0
-                info["logs"].append(f"Penalty: Invalid zone {alloc.zone}")
+                info["logs"].append(f"Penalty: Non-existent zone '{alloc.zone}'")
                 continue
 
+            # Ensure amount is non-negative and integer
+            requested_amount = max(0, int(alloc.amount))
+
             if alloc.resource == "ambulance":
-                amount = min(alloc.amount, self._observation.resources.ambulances - used_ambulances)
-                if amount < alloc.amount:
-                    reward_value -= (alloc.amount - amount) * 0.5 # Waste penalty
-                    info["logs"].append(f"Waste: Over-allocated ambulances to {zone.name}")
+                available = self._observation.resources.ambulances - used_ambulances
+                amount = min(requested_amount, available)
+                
+                if requested_amount > available:
+                    reward_value -= (requested_amount - available) * 0.5 # Over-allocation penalty
+                    info["logs"].append(f"Waste: Requested {requested_amount} ambulances but only {available} available for {zone.name}")
                 
                 if amount > 0:
                     used_ambulances += amount
                     # Reward scaled by urgency: higher urgency = higher reward
+                    # Impact: 1 ambulance reduces urgency by 20% of its current value
                     impact = amount * 0.2 * zone.urgency
                     zone.urgency = max(0.0, zone.urgency - impact)
                     reward_value += (impact * 100.0) 
-                    info["logs"].append(f"Success: Allocated {amount} ambulances to {zone.name}")
+                    info["logs"].append(f"Success: Deployed {amount} ambulances to {zone.name}")
 
             elif alloc.resource == "food_kits":
-                amount = min(alloc.amount, self._observation.resources.food_kits - used_food)
-                if amount < alloc.amount:
-                    reward_value -= (alloc.amount - amount) * 0.1 # Waste penalty
-                    info["logs"].append(f"Waste: Over-allocated food kits to {zone.name}")
+                available = self._observation.resources.food_kits - used_food
+                amount = min(requested_amount, available)
+                
+                if requested_amount > available:
+                    reward_value -= (requested_amount - available) * 0.1 # Over-allocation penalty
+                    info["logs"].append(f"Waste: Requested {requested_amount} food kits but only {available} available for {zone.name}")
                 
                 if amount > 0:
                     used_food += amount
-                    # Food helps survival, less impact on urgency than ambulances but still positive
+                    # Food reduces urgency slightly (1% per kit)
                     impact = amount * 0.01 * zone.urgency
                     zone.urgency = max(0.0, zone.urgency - impact)
                     reward_value += (impact * 50.0)
-                    info["logs"].append(f"Success: Allocated {amount} food kits to {zone.name}")
+                    info["logs"].append(f"Success: Delivered {amount} food kits to {zone.name}")
 
         # Finalize resource reduction
-        self._observation.resources.ambulances -= used_ambulances
-        self._observation.resources.food_kits -= used_food
+        self._observation.resources.ambulances = max(0, self._observation.resources.ambulances - used_ambulances)
+        self._observation.resources.food_kits = max(0, self._observation.resources.food_kits - used_food)
 
         # --- Dynamic Urgency Degradation ---
-        # In a real disaster, things get worse if not addressed.
+        # Disaster effects worsen over time if not stabilized
         for zone in self._observation.zones:
-            if zone.urgency > 0 and zone.urgency < 1.0:
-                # Small base increase + dynamic increase based on existing urgency
+            if 0 < zone.urgency < 1.0:
+                # Base growth + acceleration based on current urgency
                 degradation = 0.01 + (zone.urgency * 0.02)
                 
-                # If ambulances were sent to this zone this turn, mitigate degradation
-                zone_allocs = [a for a in action.allocations if a.zone == zone.name]
-                if any(a.resource == "ambulance" for a in zone_allocs):
-                    degradation *= 0.1 # Medical presence significantly slows down worsening
+                # Check if this zone received medical help this turn
+                medical_help = any(a.resource == "ambulance" and a.zone == zone.name for a in action.allocations)
+                if medical_help:
+                    degradation *= 0.1 # Medical presence slows crisis progression
                 
                 zone.urgency = min(1.0, zone.urgency + degradation)
 

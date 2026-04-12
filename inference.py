@@ -31,7 +31,10 @@ from tasks.hard import HardTask
 # ── Configuration ──────────────────────────────────────────────────────────────
 API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
-API_KEY = os.getenv("OPENAI_API_KEY") or os.getenv("HF_TOKEN") or "no-key-set"
+API_KEY = os.getenv("HF_TOKEN")
+
+if API_KEY is None:
+    raise ValueError("HF_TOKEN environment variable is required")
 
 BENCHMARK = "disaster-openenv"
 MAX_TOTAL_REWARD = 150.0  # Used for score normalization
@@ -81,10 +84,10 @@ def log_step(step: int, action: str, reward: float, done: bool, error: Optional[
     )
 
 
-def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> None:
+def log_end(success: bool, steps: int, rewards: List[float]) -> None:
     rewards_str = ",".join(f"{r:.2f}" for r in rewards)
     print(
-        f"[END] success={str(success).lower()} steps={steps} score={score:.3f} rewards={rewards_str}",
+        f"[END] success={str(success).lower()} steps={steps} rewards={rewards_str}",
         flush=True,
     )
 
@@ -223,7 +226,7 @@ def run_task(client: OpenAI, task_name: str, task_instance, grader: Grader) -> f
         success = score >= 0.5
 
     finally:
-        log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
+        log_end(success=success, steps=steps_taken, rewards=rewards)
 
     return score
 

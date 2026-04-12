@@ -78,8 +78,13 @@ The reward system is continuous and deterministic, designed to guide agents towa
    ```
    *Alternatively:* `pip install -r requirements.txt`
 
+### Local Testing
+Verify your environment and grader logic using the included test scripts:
+1. **Quick Test**: `python3 test_env.py` (Basic functionality check)
+2. **Comprehensive Test**: `python3 test_all_tasks.py` (Runs all 3 tasks with reports)
+
 ### Docker Setup
-Build the minimal image for containerized runs:
+Build the minimal image for containerized runs or deployment to Hugging Face Spaces:
 ```bash
 docker build -t disaster-env .
 ```

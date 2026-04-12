@@ -1,41 +1,57 @@
 # Disaster Response Environment (OpenEnv Spec)
 
-The following methods are implemented to comply with the OpenEnv specification.
+This environment is designed for evaluating strategic resource allocation in disaster scenarios. It follows the OpenEnv specification for reinforcement learning environments.
+
+## Core Concepts
+
+The environment consists of several **Zones**, each with a population count and an **Urgency** level (0.0 to 1.0). The agent's goal is to allocate limited **Resources** (Ambulances and Food Kits) to these zones to reduce urgency and stabilize the situation within a fixed time limit.
 
 ## Methods
 
-### `reset(config: dict) -> EnvironmentState`
-Initializes the environment state based on the provided configuration dictionary.
-- **config**: Dictionary containing `map_size`, `num_agents`, `num_victims`, `num_resources`, and `max_steps`.
-- **Returns**: The initial `EnvironmentState`.
+### `reset(config: dict) -> Observation`
+Initializes the environment.
+- **config**: Optional dictionary specifying `max_steps`, `resources` (dict), and `zones` (list of dicts).
+- **Returns**: The initial `Observation` dictionary.
 
-### `state() -> EnvironmentState`
-Returns the current state of the environment without advancing the simulation.
-- **Returns**: Current `EnvironmentState`.
+### `state() -> Observation`
+Returns the current state without advancing time.
+- **Returns**: Current `Observation`.
 
-### `step(actions: List[Action]) -> StepResult`
-Processes a list of actions (one for each agent) and advances the environment by one time step.
-- **actions**: A list of `Action` objects.
-- **Returns**: A `StepResult` containing the updated `state`, the `reward` for the step, and the `done` flag.
+### `step(action: Action) -> StepResult`
+Advances the simulation by one step.
+- **action**: An `Action` object containing a list of `Allocation` requests.
+- **Returns**: A dictionary containing:
+    - `observation`: The new state.
+    - `reward`: Floating point reward for the turn.
+    - `done`: Boolean indicating if `time_remaining <= 0`.
+    - `info`: Logs and metadata.
 
 ## Data Models (Pydantic)
 
-### `EnvironmentState`
+### `Observation`
 ```python
-class EnvironmentState(BaseModel):
-    step_count: int
-    max_steps: int
-    agents: List[Agent]
-    victims: List[Victim]
-    resources: List[Resource]
-    map_size: int
+class Observation(BaseModel):
+    zones: List[Zone]
+    resources: Resources
+    time_remaining: int
 ```
 
 ### `Action`
 ```python
 class Action(BaseModel):
-    agent_id: str
-    action_type: Literal["move", "pickup", "dropoff", "treat"]
-    target_id: Optional[str] = None
-    direction: Optional[Literal["up", "down", "left", "right"]] = None
+    allocations: List[Allocation]
 ```
+
+### `Allocation`
+```python
+class Allocation(BaseModel):
+    resource: Literal["ambulance", "food_kits"]
+    zone: str
+    amount: int
+```
+
+## Reward & Penalties
+- **Success Reward**: Proportional to `amount * impact * zone.urgency`.
+- **Waste Penalty**: Charged when allocating more resources than available.
+- **Inactivity Penalty**: Charged if no allocations are made.
+- **Dynamic Degradation**: Zones become more urgent over time if left unaddressed.
